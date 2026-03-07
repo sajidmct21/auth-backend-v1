@@ -180,7 +180,11 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const userId = req.userId;
+    const {userId} = req.body
+    // return res.status(200).json({
+    //   id: userId,
+    //   name: "Sajid",
+    // });
     await Session.deleteMany({ userId });
     await User.findByIdAndUpdate(userId, { isLoggedIn: false });
     return res.status(200).json(new ApiResponse(200, "You are logout"));

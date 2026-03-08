@@ -147,7 +147,7 @@ export const login = async (req, res) => {
     if (!user) {
       throw new ApiError(404, "Unauthorized User");
     }
-    const passwordCheck = await bcrypt.compare(password, user.password);
+    const passwordCheck = bcrypt.compare(password, user.password);
     if (!passwordCheck) {
       throw new ApiError(401, "Password is incorrect");
     }
@@ -180,11 +180,7 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const {userId} = req.body
-    // return res.status(200).json({
-    //   id: userId,
-    //   name: "Sajid",
-    // });
+    const { userId } = req;
     await Session.deleteMany({ userId });
     await User.findByIdAndUpdate(userId, { isLoggedIn: false });
     return res.status(200).json(new ApiResponse(200, "You are logout"));

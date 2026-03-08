@@ -6,12 +6,13 @@ import {
   registerUser,
   verification,
 } from "../controller/userController.js";
+import { isAuthenticated } from "../middleware/isAuthenticate.js";
 
 const router = express.Router();
 
 router.post("/register", asyncHandler(registerUser));
 router.post("/verify", asyncHandler(verification));
 router.post("/login", asyncHandler(login));
-router.post('/logout', asyncHandler(logout))
+router.post('/logout',isAuthenticated, asyncHandler(logout))
 
 export default router;

@@ -52,7 +52,7 @@ export const registerUser = async (req, res) => {
     // send response
     return res
       .status(200)
-      .json(new ApiResponse(200, "User is registered successfully", newUser));
+      .json(new ApiResponse(200, "User is registered successfully", newUser,true));
   } catch (error) {
     throw new ApiError(500, error.message);
   }
@@ -87,7 +87,7 @@ export const verification = async (req, res) => {
     user.isVarified = true;
     user.token = null;
     await user.save();
-    res.status(200).json(new ApiResponse(200, "Email verified successfully"));
+    res.status(200).json(new ApiResponse(200, "Email verified successfully",'',true));
   } catch (error) {
     throw new ApiError(500, error.message);
   }
@@ -176,7 +176,7 @@ export const login = async (req, res) => {
       new ApiResponse(200, "Login Successfully", {
         accessToken,
         refreshToken,
-      }),
+      },true),
     );
   } catch (err) {
     throw new ApiError(400, err.message);

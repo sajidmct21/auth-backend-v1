@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../utils/genrateToken.js";
 import { sendEMail } from "../email/sendEMail.js";
+import { sendOtpMail } from "../email/sendOtpMail.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { Session } from "../models/sessionModel.js";
@@ -51,7 +52,7 @@ export const registerUser = async (req, res) => {
     // send response
     return res
       .status(200)
-      .json(new ApiResponse(200, "User is registered successfully", newUser));
+      .json(new ApiResponse(200, "User is registered successfully", newUser,true));
   } catch (error) {
     throw new ApiError(500, error.message);
   }
@@ -80,10 +81,13 @@ export const verification = async (req, res) => {
     if (!user) {
       throw new ApiError(404, "User is not found");
     }
+    if (user.token !== token) {
+      throw new ApiError(401, "Invalid verification token");
+    }
     user.isVarified = true;
     user.token = null;
     await user.save();
-    res.status(200).json(new ApiResponse(200, "Email verified successfully"));
+    res.status(200).json(new ApiResponse(200, "Email verified successfully",'',true));
   } catch (error) {
     throw new ApiError(500, error.message);
   }
@@ -142,6 +146,7 @@ export const verification = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
+    // console.log(req.body);
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
@@ -171,7 +176,7 @@ export const login = async (req, res) => {
       new ApiResponse(200, "Login Successfully", {
         accessToken,
         refreshToken,
-      }),
+      },true),
     );
   } catch (err) {
     throw new ApiError(400, err.message);
@@ -180,11 +185,7 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const {userId} = req.body
-    // return res.status(200).json({
-    //   id: userId,
-    //   name: "Sajid",
-    // });
+    const { userId } = req;
     await Session.deleteMany({ userId });
     await User.findByIdAndUpdate(userId, { isLoggedIn: false });
     return res.status(200).json(new ApiResponse(200, "You are logout"));
@@ -192,3 +193,77 @@ export const logout = async (req, res) => {
     throw new ApiError(400, err.message);
   }
 };
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    const otp = Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
+    const expiry = new Date(Date.now() + 10 * 60 * 1000);
+    user.otp = otp;
+    user.expiry = expiry;
+    await user.save();
+    sendOtpMail(email, otp);
+    return res.status(200).json(new ApiResponse(200, "OTP is send"));
+  } catch (error) {
+    console.log(error);
+    throw new ApiError(500, error.message);
+  }
+};
+
+export const verifyOTP = async (req, res) => {
+  try {
+    let email = req.params.email
+    const { otp } = req.body
+    if (!otp) {
+      throw new ApiError('OTP is required')
+    }
+    let user = await User.findOne({ email })
+    if (!user) {
+      throw new ApiError(404, "User not found")
+    }
+    if (!user.otp || !user.otpExpiryxpiry) {
+      throw new ApiError(400, 'OTP is not generated or already verified')
+    }
+    if (user.otpExpiry < Date.now()) {
+      throw new ApiError(400, 'OTPhas expired')
+    }
+    if (user.otp !== otp) {
+      throw new ApiError(400, 'OTP is invalid')
+    }
+    user.otp = null
+    user.otpExpiry = null
+    await user.save()
+    return res.status(200).json(new ApiResponse(200, 'OTP verified successfully'))
+  } catch (error) {
+    console.log(error);
+    throw new ApiError(500, error.message)
+  }
+}
+
+export const changePassword = async (req, res) => {
+  try {
+    const { newPassword, confirmPassword } = req.body
+    const email = req.params.email
+    if (!newPassword || !confirmPassword) {
+      throw new ApiError(400, "Both fields are required")
+    }
+    if (newPassword !== confirmPassword) {
+      throw new ApiError(400, "Passwords do not match")
+    }
+    let user = await User.findOne({ email })
+    if (!user) {
+      throw new ApiError(404, "User not found")
+    }
+    let hashPassword = bcrypt.hash(password, 10)
+    user.password = hashPassword
+    await user.save()
+    return res.status(200).json(new ApiResponse(200, 'Password has changed'))
+  } catch (error) {
+    console.log(error);
+    throw new ApiError(500, error.message)
+  }
+}

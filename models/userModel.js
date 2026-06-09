@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema(
     },
     isVarified: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     isLoggedIn: {
       type: Boolean,

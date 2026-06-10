@@ -1,8 +1,8 @@
 export class ApiResponse {
-constructor(statusCode, message, data,success){
+constructor(statusCode, message, responseData,success){
 this.statusCode = statusCode
 this.message = message
-this.data = data
+this.responseData = responseData
 this.success = success
 }
 }
